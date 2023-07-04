@@ -10,7 +10,8 @@
 
 // Подключем библиотеки
 #include <ESP8266WiFi.h>
-//#include <WiFiAP.h>
+#include <GyverNTP.h>
+GyverNTP ntp(5); // +5 GMT
 #include <WiFiClient.h>
 //#include <EEPROM.h>
 #include <EEManager.h>
@@ -36,6 +37,9 @@ uint8_t state = 0; // автомат состояний
 bool sensor = 0;
 uint32_t ms = 0, prevMs = 0, stateMs = 0, sec = 1;
 GPtime upd_UpTime;
+unsigned int localPort = 2390;  // local port to listen for UDP packets
+
+
 uint8_t uptimeHour = 0, uptimeMin = 0, uptimeSec = 0;
 uint16_t totalPhotos = 0;
 // структура настроек
@@ -220,7 +224,7 @@ void wifiKeep() {
       delay(500);
       Serial.print(".");
       i++;
-      if(i > 40) ESP.restart();
+      if (i > 40) ESP.restart();
     }
     Serial.print("Connected. \nIP: ");
     // Выводим IP ESP
@@ -228,6 +232,10 @@ void wifiKeep() {
   }
 #endif
 }//wifiInit()
+
+NTP_Init() {
+  ntp.begin();
+}
 
 
 void pinsBegin() {
@@ -266,14 +274,34 @@ void setup() {
   pinsBegin();
   wifiKeep();
   webUI_Init();
-
+  NTP_Init();
 }//setup
 
 void loop() {
   // put your main code here, to run repeatedly:
+  wifiKeep(); yield();
   ui.tick();  yield();
+  ntp.tick(); yield();
   memory.tick();  yield();
-  uptime_tick();
-  wifiKeep();
+  uptime_tick();  yield();
   ms = millis();
 }//loop
+
+//uint8_t realSec = ntp.second();
+//uint8_t realmin = ntp.minute();
+//uint8_t realhour = ntp.hour();
+//uint8_t realday = ntp.day();
+//uint8_t realmonth = ntp.month();
+//uint16_t realyear = ntp.year();
+//uint8_t realdayweek = ntp.dayWeek(); 
+//String timeString();            // получить строку времени формата ЧЧ:ММ:СС
+//String dateString();            // получить строку даты формата ДД.ММ.ГГГГ
+//uint8_t status();               // получить статус системы
+
+// 0 - всё ок
+// 1 - не запущен UDP
+// 2 - не подключен WiFi
+// 3 - ошибка подключения к серверу
+// 4 - ошибка отправки пакета
+// 5 - таймаут ответа сервера
+// 6 - получен некорректный ответ сервера
