@@ -166,23 +166,23 @@ void webPageAction() {
     if (ui.clickInt("uiPhotoGap", set.afterSensorTime)) {
       Serial.print("set.afterSensorTime: ");
       Serial.println(set.shooterTime);
-      #ifdef USEMEMORY
+#ifdef USEMEMORY
       memory.update(); //обновление настроек в EEPROM памяти
-      #endif
+#endif
     }
     if (ui.clickInt("uiFlashDel", set.afterFlashDel)) {
       Serial.print("set.afterFlashDel: ");
       Serial.println(set.afterFlashDel);
-      #ifdef USEMEMORY
+#ifdef USEMEMORY
       memory.update(); //обновление настроек в EEPROM памяти
-      #endif
+#endif
     }
     if (ui.clickInt("uiShooterTime", set.shooterTime)) {
       Serial.print("set.shooterTime: ");
       Serial.println(set.shooterTime);
-      #ifdef USEMEMORY
+#ifdef USEMEMORY
       memory.update(); //обновление настроек в EEPROM памяти
-      #endif
+#endif
     }
   }//click()
 }//webPageAction()
@@ -197,7 +197,7 @@ void webUI_Init() {
 }//webUI_Init()
 
 
-void wifiInit() {
+void wifiKeep() {
 
 #ifdef ESP_WIFIAP
   // Инициируем точку доступа WiFi
@@ -207,20 +207,25 @@ void wifiInit() {
   Serial.print("wifi_AP IP: ");
   Serial.println(WiFi.softAPIP());
 #else
-  // Подключаемся к Wi-Fi
-  Serial.print("try conn to ");
-  Serial.print(ssid);
-  Serial.print(":");
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.println("Con to wifi.. ");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  if  (WiFi.status() == WL_CONNECTED) return;
+  else {
+    // Подключаемся к Wi-Fi
+    Serial.print("try conn to ");
+    Serial.print(ssid);
+    Serial.print(":");
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    byte i = 0;
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+      i++;
+      if(i > 40) ESP.restart();
+    }
+    Serial.print("Connected. \nIP: ");
+    // Выводим IP ESP
+    Serial.println(WiFi.localIP());
   }
-  Serial.print("Connected. \nIP: ");
-  // Выводим IP ESP
-  Serial.println(WiFi.localIP());
 #endif
 }//wifiInit()
 
@@ -230,8 +235,8 @@ void pinsBegin() {
   digitalWrite(LED_PIN, 0);
 }  //pinsBegin()
 
-void uptime_tick(){
-    // инкрементируем Аптайм
+void uptime_tick() {
+  // инкрементируем Аптайм
   if ((ms - prevMs) > 1000) {
     prevMs = ms;
     sec++;
@@ -258,9 +263,8 @@ void setup() {
   Serial.println("\n\n\n\n");
   EEPROM.begin(100);  // выделить память (больше или равно размеру даты)
   memory.begin(0, 'a');
-
   pinsBegin();
-  wifiInit();
+  wifiKeep();
   webUI_Init();
 
 }//setup
@@ -269,6 +273,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   ui.tick();  yield();
   memory.tick();  yield();
-  ms = millis();
   uptime_tick();
+  wifiKeep();
+  ms = millis();
 }//loop
