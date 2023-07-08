@@ -7,6 +7,7 @@
 #define WIFI_IS_HIDDEN 1                        // 1 -скрытая точка, 0 - видимая
 #define CHANNEL 1                          // канал 1..11
 #define MAX_CONNECTION 4                   // макимальное количество подключений 1..8
+#define COLORTHEME "#40c2e6" //цвет кнопочек голубенький
 
 // Подключем библиотеки
 #include <ESP8266WiFi.h>
@@ -80,7 +81,7 @@ void webPageBuild() {
   // обновление случайным числом
   GP.TITLE("Меню");
   GP.HR();
-  GP.BUTTON("btn", "Shot");
+  GP.BUTTON("btn", "Shot", "", COLORTHEME); // "" - id компонента 
   GP.LABEL("Всего:");
   GP.LABEL("NAN", "label1");
   GP.LABEL("фоток");
@@ -134,7 +135,7 @@ void webPageBuild() {
   GP.BREAK();
   GP.HR();
   
-  GP.SWITCH("treeWatering", 1, "#40c2e6");
+  GP.SWITCH("treeWatering", 1, COLORTHEME);
   
   GP.BREAK();
   String s;
