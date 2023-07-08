@@ -16,7 +16,9 @@ GyverNTP ntp(5); // +5 GMT
 //#include <EEPROM.h>
 #include <EEManager.h>
 #include <GyverPortal.h>
-GyverPortal ui;
+#include <LittleFS.h>
+GyverPortal ui(&LittleFS); // для проверки файлов
+
 
 #ifdef ESP_WIFIAP
 bool wifiHidden = WIFI_IS_HIDDEN;
@@ -51,6 +53,10 @@ struct Settings {
   char str[20];
 };
 
+uint8_t startMin=10;
+uint8_t startHour=3;
+uint8_t wateringMin = 15;
+
 Settings set; // инициализация структуры типа mem
 
 EEManager memory(set); // инициализация памяти
@@ -62,6 +68,7 @@ void ledBlink() {
   digitalWrite(LED_PIN, 0);
   delay(40);
 }//ledBlink()
+
 
 // страницу web портала строим
 void webPageBuild() {
@@ -109,6 +116,29 @@ void webPageBuild() {
   GP.LABEL("в милисекундах");
   GP.BREAK();
   GP.HR();
+
+
+  GP.SELECT("startHour", "0,1,2,3,4,5,6,7,8,9,10,11,12,", startHour);
+  GP.SELECT("startMin", "0,1,2,3,4,5,6,7,8,9,10,11,12,\
+  13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
+  28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,\
+  43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,0", startMin);
+  GP.SELECT("wateringMin", "0,1,2,3,4,5,6,7,8,9,10,11,12,\
+  13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
+  28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,\
+  43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,0", wateringMin);
+
+
+  GP.RELOAD_CLICK("idx");
+  GP.BREAK();
+
+  String s;
+  s += F("<a href='");
+  s += "/ota_update";
+  s += F("'>");
+  s += "Firmware update";
+  s += F("</a>");
+  GP.SEND(s);
 
   /* examples
 
@@ -188,6 +218,10 @@ void webPageAction() {
       memory.update(); //обновление настроек в EEPROM памяти
 #endif
     }
+  ui.clickInt("startMin", startMin);  // поймать и записать индекс
+  ui.clickInt("startMin", startHour);  // поймать и записать индекс
+  ui.clickInt("wateringMin", wateringMin);  // поймать и записать индекс
+
   }//click()
 }//webPageAction()
 
@@ -197,7 +231,9 @@ void webUI_Init() {
   ui.attachBuild(webPageBuild);
   ui.attach(webPageAction);
   ui.start();
-
+  ui.enableOTA();   // без пароля
+  if (!LittleFS.begin()) Serial.println("FS Error");
+  ui.downloadAuto(true);
 }//webUI_Init()
 
 
@@ -233,7 +269,7 @@ void wifiKeep() {
 #endif
 }//wifiInit()
 
-NTP_Init() {
+void NTP_Init() {
   ntp.begin();
 }
 
@@ -293,7 +329,7 @@ void loop() {
 //uint8_t realday = ntp.day();
 //uint8_t realmonth = ntp.month();
 //uint16_t realyear = ntp.year();
-//uint8_t realdayweek = ntp.dayWeek(); 
+//uint8_t realdayweek = ntp.dayWeek();
 //String timeString();            // получить строку времени формата ЧЧ:ММ:СС
 //String dateString();            // получить строку даты формата ДД.ММ.ГГГГ
 //uint8_t status();               // получить статус системы
