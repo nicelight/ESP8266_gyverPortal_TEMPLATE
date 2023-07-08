@@ -127,11 +127,16 @@ void webPageBuild() {
   13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
   28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,\
   43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,0", wateringMin);
-
-
-  GP.RELOAD_CLICK("idx");
   GP.BREAK();
-
+  
+  GP.RELOAD_CLICK("idx");
+  
+  GP.BREAK();
+  GP.HR();
+  
+  GP.SWITCH("treeWatering", 1, "#40c2e6");
+  
+  GP.BREAK();
   String s;
   s += F("<a href='");
   s += "/ota_update";
