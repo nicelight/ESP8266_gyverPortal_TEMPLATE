@@ -42,8 +42,12 @@ uint32_t ms = 0, prevMs = 0, stateMs = 0, sec = 1;
 GPtime upd_UpTime;
 unsigned int localPort = 2390;  // local port to listen for UDP packets
 
-
+uint16_t realyear = 0;
+uint8_t nowhh = 0;
+uint8_t nowmm = 0;
+uint8_t nowss = 0;
 uint8_t uptimeHour = 0, uptimeMin = 0, uptimeSec = 0;
+
 uint16_t totalPhotos = 0;
 // структура настроек
 struct Settings {
@@ -52,10 +56,11 @@ struct Settings {
   uint32_t sld;
   uint32_t afterFlashDel;
   char str[20];
+  bool wateringNow = 0;
 };
 
-uint8_t startMin=10;
-uint8_t startHour=3;
+uint8_t startMin = 10;
+uint8_t startHour = 3;
 uint8_t wateringMin = 15;
 
 Settings set; // инициализация структуры типа mem
@@ -76,27 +81,35 @@ void webPageBuild() {
   GP.BUILD_BEGIN();
   GP.THEME(GP_DARK);
 
-  GP.UPDATE("label1,label2,hh,mm,ss");// какие поля нужно обновлять
+  GP.UPDATE("uptimehh, uptimemm, uptimess, nowhh, nowmm, nowss");// какие поля нужно обновлять
 
   // обновление случайным числом
   GP.TITLE("Меню");
   GP.HR();
-  GP.BUTTON("btn", "Shot", "", COLORTHEME); // "" - id компонента 
-  GP.LABEL("Всего:");
-  GP.LABEL("NAN", "label1");
-  GP.LABEL("фоток");
-  GP.BREAK();
-  GP.LABEL("Сфоткал");
-  GP.LABEL("NAN", "label2");
-  GP.LABEL("сек назад");
+  GP.BUTTON("btn", "Shot", "", COLORTHEME); // "" - id компонента
+  //-  GP.LABEL("Всего:");
+  //-  GP.LABEL("NAN", "label1");
+  //-  GP.LABEL("фоток");
+  //-  GP.BREAK();
+  //-  GP.LABEL("Сфоткал");
+  //-  GP.LABEL("NAN", "label2");
+  //-  GP.LABEL("сек назад");
   GP.BREAK();
   GP.LABEL("Аптайм:");
-  GP.LABEL("hh", "hh");
+  GP.LABEL("uptimehh", "uptimehh");
   GP.LABEL("ч");
-  GP.LABEL("mm", "mm");
+  GP.LABEL("uptimemm", "uptimemm");
   GP.LABEL("м");
-  GP.LABEL("ss", "ss");
   GP.BREAK();
+
+  GP.LABEL("Время:");
+  GP.LABEL("nowhh", "nowhh");
+  GP.LABEL(":");
+  GP.LABEL("nowmm", "nowmm");
+  GP.LABEL(" :");
+  GP.LABEL("nowss", "nowss");
+  GP.BREAK();
+
   GP.HR();
   //GP.SLIDER("sld", set.sld);
   //GP.BREAK();
@@ -129,14 +142,14 @@ void webPageBuild() {
   28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,\
   43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,0", wateringMin);
   GP.BREAK();
-  
+
   GP.RELOAD_CLICK("idx");
-  
+
   GP.BREAK();
   GP.HR();
-  
+
   GP.SWITCH("treeWatering", 1, COLORTHEME);
-  
+
   GP.BREAK();
   String s;
   s += F("<a href='");
@@ -146,44 +159,6 @@ void webPageBuild() {
   s += F("</a>");
   GP.SEND(s);
 
-  /* examples
-
-    // создаём блок вручную
-    GP.BLOCK_TAB_BEGIN("MOTOR CONFIG");
-    M_BOX(GP.LABEL("Velocity"); GP.SLIDER("vel"););
-    M_BOX(GP.LABEL("Accel."); GP.SLIDER("acc"););
-    M_BOX(GP.BUTTON("bkw", "◄"); GP.BUTTON("frw", "►"););
-    GP.BLOCK_END();
-
-    GP.HR();
-    GP.HR();
-
-    GP.BLOCK_BEGIN(GP_THIN, "", "My thin txt red", GP_RED);
-    GP.LABEL("Block thin text red");
-    GP.BOX_BEGIN(GP_JUSTIFY);
-    GP.LABEL("Slider");
-    GP.SLIDER("sld");
-
-    GP.BOX_BEGIN(GP_JUSTIFY);
-    GP.LABEL("Buttons");
-    GP.BOX_BEGIN(GP_RIGHT);
-    GP.BUTTON_MINI("b1", "Kek", "", GP_RED);
-    GP.BUTTON_MINI("b1", "Puk");
-    GP.BOX_END();
-    GP.BOX_END();
-
-    GP.HR();
-    GP.HR();
-
-    M_BLOCK(
-      M_BOX(GP.LABEL("Some check 1"); GP.CHECK(""); );
-    M_BOX(GP.LABEL("Some Switch 1"); GP.SWITCH(""); );
-    M_BOX(GP.LABEL("SSID");     GP.TEXT(""); );
-    M_BOX(GP.LABEL("passwordAP"); GP.TEXT(""); );
-    M_BOX(GP.LABEL("Host");     GP.TEXT(""); );
-    );
-
-  */
   GP.BUILD_END();
 } // webPageBuild()
 
@@ -192,11 +167,13 @@ void webPageBuild() {
 void webPageAction() {
 
   if (ui.update()) {
-    ui.updateInt("label1", totalPhotos);
-    ui.updateInt("label2", sec);
-    ui.updateInt("hh", uptimeHour);
-    ui.updateInt("mm", uptimeMin);
-    ui.updateInt("ss", uptimeSec);
+    //-    ui.updateInt("label1", totalPhotos);
+    //-    ui.updateInt("label2", sec);
+    ui.updateInt("uptimehh", uptimeHour);
+    ui.updateInt("uptimemm", uptimeMin);
+    ui.updateInt("nowhh", nowhh);
+    ui.updateInt("nowmm", nowmm);
+    ui.updateInt("nowss", nowss);
   }//update()
   if (ui.click()) {
     Serial.println("UI CLICK detected");
@@ -224,9 +201,9 @@ void webPageAction() {
       memory.update(); //обновление настроек в EEPROM памяти
 #endif
     }
-  ui.clickInt("startMin", startMin);  // поймать и записать индекс
-  ui.clickInt("startMin", startHour);  // поймать и записать индекс
-  ui.clickInt("wateringMin", wateringMin);  // поймать и записать индекс
+    ui.clickInt("startMin", startMin);  // поймать и записать индекс
+    ui.clickInt("startMin", startHour);  // поймать и записать индекс
+    ui.clickInt("wateringMin", wateringMin);  // поймать и записать индекс
 
   }//click()
 }//webPageAction()
@@ -277,7 +254,44 @@ void wifiKeep() {
 
 void NTP_Init() {
   ntp.begin();
+  delay(300);
+  if (!ntpUpdate()) Serial.println("ntp can't update");
+
 }
+
+bool ntpUpdate() {
+  realyear = ntp.year();
+  for (int i = 0; i < 10; i++) {
+    byte err = ntp.status();
+    if (!err && (realyear > 2022) && (realyear < 2040)) {
+      //if ((realyear > 2022) && (realyear < 2035)) {
+      nowss = ntp.second();
+      nowmm = ntp.minute();
+      nowhh =  ntp.hour();
+      return 1;
+    } else  {
+      Serial.printf("year: %lu \t", realyear);
+      Serial.printf("ntp error: %lu \n", err);
+    }
+  }//for
+  return 0;
+  //uint8_t realday = ntp.day();
+  //uint8_t realmonth = ntp.month();
+  //uint16_t realyear = ntp.year();
+  //uint8_t realdayweek = ntp.dayWeek();
+  //String timeString();            // получить строку времени формата ЧЧ:ММ:СС
+  //String dateString();            // получить строку даты формата ДД.ММ.ГГГГ
+  //uint8_t ntp.status();               // получить статус системы
+
+
+  // 0 - всё ок
+  // 1 - не запущен UDP
+  // 2 - не подключен WiFi
+  // 3 - ошибка подключения к серверу
+  // 4 - ошибка отправки пакета
+  // 5 - таймаут ответа сервера
+  // 6 - получен некорректный ответ сервера}//ntpUpdate()
+}//ntpUpdate()
 
 
 void pinsBegin() {
@@ -285,25 +299,40 @@ void pinsBegin() {
   digitalWrite(LED_PIN, 0);
 }  //pinsBegin()
 
-void uptime_tick() {
+void times_tick() {
   // инкрементируем Аптайм
-  if ((ms - prevMs) > 1000) {
+  if ((ms - prevMs) > 1000L) {
     prevMs = ms;
     sec++;
     uptimeSec++;
+    nowss++;
     //Serial.print("state:");
     //Serial.println(state);
+    // обонвлять ntp пока не получим нормальный год
+    if((realyear < 2022) || (realyear > 2040)) ntpUpdate();
     if (uptimeSec > 59) {
       uptimeSec = 0;
       uptimeMin++;
       if (uptimeMin > 59) {
         uptimeMin = 0;
         uptimeHour++;
-        Serial.printf("%lu hours %lu mins\n", uptimeHour, uptimeMin);
+        if (!ntpUpdate()) Serial.println("ntp can't update");
+        Serial.printf("%lu uptime hours %lu mins\n", uptimeHour, uptimeMin);
       }
     }  //if sec
+    if (nowss > 59) {
+      nowss = 0;
+      nowmm++;
+      if (nowmm > 59) {
+        nowmm = 0;
+        nowhh++;
+        if (nowhh > 23) nowhh = 0;
+        Serial.printf("%lu real hours %lu mins\n", nowhh, nowmm);
+      }
+    }  //if sec
+
   }//ms 1000
-}//uptime_tick()
+}//times_tick()
 
 
 void setup() {
@@ -325,25 +354,7 @@ void loop() {
   ui.tick();  yield();
   ntp.tick(); yield();
   memory.tick();  yield();
-  uptime_tick();  yield();
+  times_tick();  yield();
   ms = millis();
+
 }//loop
-
-//uint8_t realSec = ntp.second();
-//uint8_t realmin = ntp.minute();
-//uint8_t realhour = ntp.hour();
-//uint8_t realday = ntp.day();
-//uint8_t realmonth = ntp.month();
-//uint16_t realyear = ntp.year();
-//uint8_t realdayweek = ntp.dayWeek();
-//String timeString();            // получить строку времени формата ЧЧ:ММ:СС
-//String dateString();            // получить строку даты формата ДД.ММ.ГГГГ
-//uint8_t status();               // получить статус системы
-
-// 0 - всё ок
-// 1 - не запущен UDP
-// 2 - не подключен WiFi
-// 3 - ошибка подключения к серверу
-// 4 - ошибка отправки пакета
-// 5 - таймаут ответа сервера
-// 6 - получен некорректный ответ сервера
