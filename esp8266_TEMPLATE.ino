@@ -1,5 +1,5 @@
-//#define USEMEMORY  // использовать  EEPROM для сохранения настроек
-// #define ESP_WIFIAP //если нужно не подключаться к wifi а создать свою точку доступа 
+#define USEMEMORY  //  использовать  EEPROM для сохранения настроек
+// #define ESP_WIFIAP // если нужно не подключаться к wifi а создать свою точку доступа
 
 // Определяем точкy доступа
 #define WIFI_ACCES_POINT esp32              // имя и пароль создаваемой wifi сети
@@ -7,8 +7,7 @@
 #define WIFI_IS_HIDDEN 0                        // 1 -скрытая точка, 0 - видимая
 #define CHANNEL 1                          // канал 1..11
 #define MAX_CONNECTION 4                   // макимальное количество подключений 1..8
-
-#define COLORTHEME "#40c2e6" //цвет кнопочек интерфейса голубенький
+#define COLORTHEME "#40c2e6" //цвет кнопочек голубенький
 
 //подключение релюшек включения воды
 #define TAP1 10
@@ -26,7 +25,7 @@ GyverNTP ntp(5); // +5 GMT
 #include <EEManager.h>
 #include <GyverPortal.h>
 #include <LittleFS.h>
-GyverPortal ui(&LittleFS); 
+GyverPortal ui(&LittleFS);
 
 
 #ifdef ESP_WIFIAP
@@ -63,7 +62,7 @@ uint16_t wateringLeft = 0; // сколько еще поливаем на тек
 // структура настроек
 struct Settings {
   bool autoWatering;
-  uint16_t wateringMin; // сколько минут поливать
+  int16_t wateringMin; // сколько минут поливать
 
   uint8_t startMin; // начало полива
   uint8_t startHour;
@@ -90,7 +89,7 @@ void ledBlink() {
 void webPageBuild() {
   GP.BUILD_BEGIN();
   GP.THEME(GP_DARK);
-  GP.UPDATE("uptimehh, uptimemm, nowhh, nowmm, nowss, wateringLeft, isWatering");// какие поля нужно обновлять
+  GP.UPDATE("uptimehh, uptimemm, nowhh, nowmm, nowss, wateringLeft, isWatering, autoWatering");// какие поля нужно обновлять
 
   GP.TITLE("Меню");
   GP.BREAK(); GP.HR(); GP.HR();
@@ -110,18 +109,9 @@ void webPageBuild() {
   GP.BREAK(); GP.HR();
 
   // GP.BUTTON("btn", "Полить сейчас", "", COLORTHEME); // "" - id компонента
-  GP.BREAK();
-  GP.LABEL("Полив");
-  GP.SWITCH("isWatering", isWatering, COLORTHEME); //
-
-  GP.LABEL("еще ");
-  GP.SELECT("wateringLeft", "0,1,2,3,4,5,6,7,8,9,10,15,20,\
-  30,40,50,60,70,80,90,100,120,140,160,180,200,250,300", wateringLeft);
-  GP.LABEL("минут.");
-  GP.BREAK();  GP.HR();
 
   GP.LABEL("Автополив деревьев");
-  GP.SWITCH("treeWatering", set.autoWatering, COLORTHEME); //
+  GP.SWITCH("autoWatering", set.autoWatering, COLORTHEME); //
   GP.BREAK();
   GP.LABEL("Начать полив");
   /// начало полива
@@ -134,20 +124,34 @@ void webPageBuild() {
   GP.BREAK();
 
   GP.LABEL("Поливать");
-  GP.SELECT("wateringMin", "1,2,3,4,5,6,7,8,9,10,15,20,\
-  30,40,50,60,70,80,90,100,120,140,160,180,200,250,300", set.wateringMin);
-  GP.LABEL("минут.");
+  //  GP.SELECT("wateringMin", "0,1,2,3,4,5,6,7,8,9,10,15,20,\
+  //  30,40,50,60,70,80,90,100,120,140,160,180,200,250,300", set.wateringMin);
+  GP.SELECT("wateringMin", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,\
+  21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,\
+  51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70", set.wateringMin);
 
-/*
-  GP.LABEL("Окончить полив");
-  GP.SELECT("stopHour", "00,01,02,03,04,05,06,07,08,09,10,11,12,\
-  13,14,15,16,17,18,19,20,21,22,23", set.stopHour);
-  GP.SELECT("stopMin", "00,01,02,03,04,05,06,07,08,09,10,11,12,\
-  13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
-  28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,\
-  43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,0", set.stopMin);
- */ 
-  
+  GP.LABEL("минут.");
+  GP.BREAK(); GP.HR();
+
+  GP.LABEL("Полив");
+  GP.SWITCH("isWatering", isWatering, COLORTHEME); //
+
+  GP.LABEL("еще ");
+  GP.SELECT("wateringLeft", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,\
+  21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,\
+  51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70", wateringLeft);
+  GP.LABEL("минут.");
+  GP.BREAK();
+  /*
+    GP.LABEL("Окончить полив");
+    GP.SELECT("stopHour", "00,01,02,03,04,05,06,07,08,09,10,11,12,\
+    13,14,15,16,17,18,19,20,21,22,23", set.stopHour);
+    GP.SELECT("stopMin", "00,01,02,03,04,05,06,07,08,09,10,11,12,\
+    13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
+    28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,\
+    43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,0", set.stopMin);
+  */
+
   GP.BREAK(); GP.HR(); GP.BREAK();
 
 
@@ -183,7 +187,8 @@ void webPageAction() {
     ui.updateInt("nowss", nowss);
 
     ui.updateInt("wateringLeft", wateringLeft);
-
+    ui.updateInt("isWatering", isWatering);
+    ui.updateBool("autoWatering", set.autoWatering);
     //алерт - настройки сохранены
     if (ui.update("alert_saved")) {
 #ifdef USEMEMORY
@@ -196,17 +201,15 @@ void webPageAction() {
   if (ui.click()) {
     Serial.println("UI CLICK detected");
     // переключатель автополива
-    if (ui.clickBool("treeWatering", set.autoWatering)) {
+    if (ui.clickBool("autoWatering", set.autoWatering)) {
     }
     //включение полива прямо сейчас
     if (ui.clickBool("isWatering", isWatering)) {
     }
-
     // по нажатию на кнопку
     if (ui.click("btn")) {
       ledBlink();
     }
-
     ui.clickInt("startMin", set.startMin);  // поймать и записать индекс
     ui.clickInt("startHour", set.startHour);  // поймать и записать индекс
     ui.clickInt("wateringMin", set.wateringMin);  // поймать и записать индекс
@@ -231,7 +234,6 @@ void webUI_Init() {
 
 
 void wifiKeep() {
-
   static uint8_t sw = 0; // автомат
   static uint8_t i = 0; // cчетчик
   static uint32_t prevMs = 0;
@@ -241,8 +243,7 @@ void wifiKeep() {
       prevsw = sw;
       Serial.print("sw = ");
       Serial.println(sw);
-    }
-  */
+    } */
   switch (sw) {
     case 0:
       sw = 3;
@@ -385,7 +386,6 @@ void pinsBegin() {
 
 void times_tick() {
   static uint32_t prevMs = 0, stateMs = 0;
-
   // инкрементируем Аптайм
   if ((millis() - prevMs) > 1000L) {
     prevMs = millis();
@@ -417,6 +417,84 @@ void times_tick() {
     }  //if sec
   }//ms 1000
 }// times_tick()
+
+
+void autoWatering_tick() {
+  static uint8_t prevmm = 0;
+  static uint8_t sw = 0; // автомат
+  static uint8_t i = 0; // cчетчик
+  static uint32_t prevMs = 0;
+  static uint16_t prevwateringLeft = 0;
+  //debug
+  static uint8_t prevsw = 0; // автомат
+  if ((sw != prevsw ) || (prevwateringLeft != wateringLeft)) {
+    prevwateringLeft = wateringLeft;
+    prevsw = sw;
+    Serial.print("sw=");
+    Serial.print(sw);
+    Serial.print(" wateringLeft=");
+    Serial.print(wateringLeft);
+    Serial.print(" IS=");
+    Serial.print(isWatering);
+    Serial.print("\ttime ");
+    Serial.print(nowhh);
+    Serial.print(":");
+    Serial.print(nowmm);
+    Serial.println();
+
+  }
+  switch (sw) {
+    case 0:
+      sw = 3;
+      prevMs = millis();
+      break;
+    // ждем, когда начать полив
+    case 3:
+      if (millis() - prevMs >= 1000L) {
+        prevMs = millis();
+        // если включен автополив и настало время; или если принудительно включили полив
+        if ((set.autoWatering && set.wateringMin && (nowmm == set.startMin) && (nowhh == set.startHour))\
+            || (isWatering && wateringLeft)) {
+          // запомним сколько минут было когда включился  полив
+          // как только значение минут изменится, декрементируем время полива
+          prevmm = nowmm;
+          // если не принудительно включили, установим время остатка полива
+          if (!isWatering) wateringLeft = set.wateringMin;
+          isWatering = 1;
+          digitalWrite(TAP1, isWatering); // даем  ВОДИЧКУ
+          sw = 5;
+        }//
+      }//if ms
+      break;
+    // отлистываем минуты полива назад, до нуля
+    case 5:
+      if (millis() - prevMs >= 1000L) {
+        prevMs = millis();
+        // декремент времени полива каждую минуту
+        if (prevmm != nowmm) {
+          prevmm = nowmm;
+          wateringLeft--;
+        }
+        // время полива кончилось - останавливаемся
+        if (!wateringLeft) {
+          prevMs = millis();
+          isWatering = 0;
+          digitalWrite(TAP1, isWatering); // закрываем ВОДИЧКУ
+          sw = 3;
+        }
+        //принудительно отключили воду  - останавливаемся и отключим автополив
+        if (!isWatering) {
+          prevMs = millis();
+          // костыль - если отключили в первую минуту полива, чтобы не заглючило, отключаем автополив
+          if (nowmm == set.startMin) set.autoWatering = 0;
+          digitalWrite(TAP1, isWatering); // закрываем ВОДИЧКУ
+          sw = 3;
+        }
+      }//ms
+      break;
+
+  }//switch (sw)
+}//watering_tick
 
 
 void checkloop() {
@@ -451,5 +529,6 @@ void loop() {
   // ntpUpdate();  yield();
   memory.tick();  yield();
   times_tick();  yield();
+  autoWatering_tick(); yield();
 
 }//loop
